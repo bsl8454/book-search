@@ -13,9 +13,11 @@ HTML
         .search-container { display: flex; gap: 5px; margin-bottom: 20px; }
         #search-input { flex-grow: 1; padding: 12px; border: 2px solid #3498db; border-radius: 5px; font-size: 16px; }
         button { padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .book-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #3498db; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: left; }
-        .book-title { font-size: 17px; color: #2c3e50; font-weight: bold; display: block; margin-bottom: 5px; }
+        .book-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #3498db; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: left; position: relative; }
+        .book-title { font-size: 17px; color: #2c3e50; font-weight: bold; display: block; margin-bottom: 5px; padding-right: 70px; }
         .book-details { font-size: 14px; color: #7f8c8d; line-height: 1.5; }
+        /* 대출중 상태 배지 전용 디자인 */
+        .status-on { position: absolute; top: 15px; right: 15px; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; background-color: #e74c3c; color: white; }
         #result-count { font-weight: bold; margin-bottom: 10px; color: #34495e; }
     </style>
 </head>
@@ -40,7 +42,6 @@ HTML
             resultCount.innerHTML = "🔍 검색 중입니다...";
             resultsList.innerHTML = "";
 
-            // 사용자님의 시트 ID와 정확한 gid(시트 고유번호) 적용
             const sheetId = '1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw';
             const gid = '2045470469'; 
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
@@ -53,15 +54,21 @@ HTML
 
                 let count = 0;
                 rows.forEach(row => {
-                    // C열(서명): row.c[2], D열(저자): row.c[3], E열(출판사): row.c[4]
                     const title = row.c[2] ? String(row.c[2].v) : '';
                     const author = row.c[3] ? String(row.c[3].v) : '';
                     const publisher = row.c[4] ? String(row.c[4].v) : '';
+                    // F열(5번)이 '대출중'일 때만 상태 배지를 생성합니다.
+                    const statusVal = row.c[5] ? String(row.c[5].v).trim() : '';
 
                     if (title.toLowerCase().includes(query.toLowerCase()) || author.toLowerCase().includes(query.toLowerCase())) {
                         const div = document.createElement('div');
                         div.className = 'book-item';
+                        
+                        // 대출중인 경우에만 빨간색 배지 HTML 코드를 추가합니다.
+                        const statusBadge = statusVal === '대출중' ? `<span class="status-on">대출중</span>` : '';
+                        
                         div.innerHTML = `
+                            ${statusBadge}
                             <span class="book-title">${title}</span>
                             <div class="book-details"><b>저자:</b> ${author} | <b>출판사:</b> ${publisher}</div>
                         `;
@@ -76,8 +83,7 @@ HTML
                     resultCount.innerHTML = "❌ 검색 결과가 없습니다.";
                 }
             } catch (e) {
-                console.error(e);
-                resultCount.innerHTML = "⚠️ 데이터를 불러오지 못했습니다. 시트 공유 설정을 확인해주세요.";
+                resultCount.innerHTML = "⚠️ 데이터를 불러오지 못했습니다. 시트 설정을 확인해주세요.";
             }
         }
     </script>
