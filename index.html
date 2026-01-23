@@ -1,22 +1,19 @@
-
 HTML
 
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LH 밤송이 작은도서관 도서검색</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f7f6; }
         .header { text-align: center; margin-bottom: 30px; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; font-size: 22px; }
         .search-container { display: flex; gap: 5px; margin-bottom: 20px; }
-        #search-input { flex-grow: 1; padding: 12px; border: 2px solid #3498db; border-radius: 5px; font-size: 16px; }
+        #search-input { flex-grow: 1; padding: 12px; border: 2px solid #3498db; border-radius: 5px; }
         button { padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .book-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #3498db; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: left; }
         .book-title { font-size: 17px; color: #2c3e50; font-weight: bold; display: block; margin-bottom: 5px; }
-        .book-details { font-size: 14px; color: #7f8c8d; line-height: 1.5; }
+        .book-details { font-size: 14px; color: #7f8c8d; }
     </style>
 </head>
 <body>
@@ -26,7 +23,7 @@ HTML
             <input type="text" id="search-input" placeholder="도서명 또는 저자 입력" onkeypress="if(event.keyCode==13) searchBooks()">
             <button onclick="searchBooks()">검색</button>
         </div>
-        <div id="result-count" style="font-weight:bold; color:#34495e;"></div>
+        <div id="result-count" style="font-weight:bold;"></div>
     </div>
     <div id="results-list"></div>
 
@@ -37,10 +34,10 @@ HTML
 
             const resultCount = document.getElementById('result-count');
             const resultsList = document.getElementById('results-list');
-            resultCount.innerHTML = "🔍 검색 중입니다...";
+            resultCount.innerHTML = "🔍 검색 중...";
             resultsList.innerHTML = "";
 
-            // 구글 시트 ID와 탭 이름(books)
+            // 사용자님의 시트 주소에서 추출한 ID
             const sheetId = '1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw';
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=books`;
 
@@ -52,34 +49,26 @@ HTML
 
                 let count = 0;
                 rows.forEach(row => {
-                    // 엑셀 캡처 기준 열 순서 적용
+                    // 시트 캡처 기준: [2]번칸 서명, [3]번칸 저자, [4]번칸 출판사
                     const title = row.c[2] ? String(row.c[2].v) : '제목 없음';
                     const author = row.c[3] ? String(row.c[3].v) : '-';
                     const publisher = row.c[4] ? String(row.c[4].v) : '-';
-                    const bookId = row.c[1] ? String(row.c[1].v) : '-';
 
                     if (title.includes(query) || author.includes(query)) {
                         const div = document.createElement('div');
                         div.className = 'book-item';
                         div.innerHTML = `
                             <span class="book-title">${title}</span>
-                            <div class="book-details">
-                                <b>저자:</b> ${author} | <b>출판사:</b> ${publisher}<br>
-                                <b>등록번호:</b> ${bookId}
-                            </div>
+                            <div class="book-details">저자: ${author} | 출판사: ${publisher}</div>
                         `;
                         resultsList.appendChild(div);
                         count++;
                     }
                 });
 
-                if (count > 0) {
-                    resultCount.innerHTML = `총 ${count}건이 검색되었습니다.`;
-                } else {
-                    resultCount.innerHTML = "❌ 검색 결과가 없습니다.";
-                }
+                resultCount.innerHTML = count > 0 ? `총 ${count}건이 검색되었습니다.` : "❌ 검색 결과가 없습니다.";
             } catch (e) {
-                resultCount.innerHTML = "⚠️ 데이터를 불러오지 못했습니다. 구글 시트 공유 설정을 확인해주세요.";
+                resultCount.innerHTML = "⚠️ 데이터를 불러오지 못했습니다. 시트의 [공유] 설정을 확인해주세요.";
             }
         }
     </script>
