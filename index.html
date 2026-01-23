@@ -7,35 +7,41 @@ HTML
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LH 밤송이 작은도서관 도서검색</title>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f7f6; }
-        .header { text-align: center; margin-bottom: 30px; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; font-size: 22px; margin-bottom: 10px; }
-        .search-container { display: flex; gap: 5px; margin-bottom: 20px; }
-        #search-input { flex-grow: 1; padding: 12px; border: 2px solid #3498db; border-radius: 5px; font-size: 16px; }
-        button { padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .book-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #3498db; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: left; position: relative; }
-        .book-title { font-size: 17px; color: #2c3e50; font-weight: bold; display: block; margin-bottom: 5px; padding-right: 70px; }
-        .book-details { font-size: 14px; color: #7f8c8d; line-height: 1.5; }
-        /* 대출중 상태 배지 전용 디자인 */
-        .status-on { position: absolute; top: 15px; right: 15px; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; background-color: #e74c3c; color: white; }
-        #result-count { font-weight: bold; margin-bottom: 10px; color: #34495e; }
+        body { font-family: 'Malgun Gothic', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .header { text-align: center; margin-bottom: 30px; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        h1 { color: #2c3e50; font-size: 24px; margin: 0 0 15px 0; }
+        .search-container { display: flex; gap: 8px; }
+        #search-input { flex-grow: 1; padding: 14px; border: 2px solid #3498db; border-radius: 8px; font-size: 16px; outline: none; }
+        #search-input:focus { border-color: #2980b9; box-shadow: 0 0 8px rgba(52,152,219,0.3); }
+        button { padding: 0 25px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.2s; }
+        button:hover { background: #2980b9; }
+        
+        #result-count { font-weight: bold; margin: 15px 0; color: #555; font-size: 14px; text-align: left; }
+        .book-item { background: white; padding: 18px; border-radius: 10px; margin-bottom: 12px; border-left: 6px solid #3498db; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
+        
+        .book-title { font-size: 18px; color: #2c3e50; font-weight: bold; display: block; margin-bottom: 8px; line-height: 1.4; padding-right: 70px; }
+        .book-info { font-size: 14px; color: #666; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; border-top: 1px solid #eee; pt: 8px; margin-top: 8px; }
+        .info-label { color: #999; font-weight: normal; margin-right: 5px; }
+        
+        .status-on { position: absolute; top: 18px; right: 18px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; background-color: #e74c3c; color: white; letter-spacing: -0.5px; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>📚 LH 밤송이 작은도서관</h1>
+        <h1>📚 밤송이 작은도서관</h1>
         <div class="search-container">
-            <input type="text" id="search-input" placeholder="도서명 또는 저자 입력" onkeypress="if(event.keyCode==13) searchBooks()">
+            <input type="text" id="search-input" placeholder="도서명 또는 저자 검색..." onkeypress="if(event.keyCode==13) searchBooks()">
             <button onclick="searchBooks()">검색</button>
         </div>
-        <div id="result-count"></div>
     </div>
+    
+    <div id="result-count"></div>
     <div id="results-list"></div>
 
     <script>
         async function searchBooks() {
             const query = document.getElementById('search-input').value.trim();
-            if (!query) { alert('검색어를 입력하세요.'); return; }
+            if (!query) return;
 
             const resultCount = document.getElementById('result-count');
             const resultsList = document.getElementById('results-list');
@@ -54,36 +60,36 @@ HTML
 
                 let count = 0;
                 rows.forEach(row => {
-                    const title = row.c[2] ? String(row.c[2].v) : '';
-                    const author = row.c[3] ? String(row.c[3].v) : '';
-                    const publisher = row.c[4] ? String(row.c[4].v) : '';
-                    // F열(5번)이 '대출중'일 때만 상태 배지를 생성합니다.
-                    const statusVal = row.c[5] ? String(row.c[5].v).trim() : '';
+                    // 데이터 열 위치 매핑
+                    const regNum = row.c[1] ? String(row.c[1].v) : '-'; // B열: 등록번호
+                    const title = row.c[2] ? String(row.c[2].v) : '제목없음'; // C열: 서명
+                    const author = row.c[3] ? String(row.c[3].v) : '-'; // D열: 저자
+                    const pub = row.c[4] ? String(row.c[4].v) : '-';    // E열: 출판사
+                    const status = row.c[6] ? String(row.c[6].v).trim() : ''; // G열: 대출상태
 
                     if (title.toLowerCase().includes(query.toLowerCase()) || author.toLowerCase().includes(query.toLowerCase())) {
                         const div = document.createElement('div');
                         div.className = 'book-item';
                         
-                        // 대출중인 경우에만 빨간색 배지 HTML 코드를 추가합니다.
-                        const statusBadge = statusVal === '대출중' ? `<span class="status-on">대출중</span>` : '';
+                        const statusTag = (status === '대출중') ? `<span class="status-on">대출중</span>` : '';
                         
                         div.innerHTML = `
-                            ${statusBadge}
+                            ${statusTag}
                             <span class="book-title">${title}</span>
-                            <div class="book-details"><b>저자:</b> ${author} | <b>출판사:</b> ${publisher}</div>
+                            <div class="book-info">
+                                <div><span class="info-label">번호</span>${regNum}</div>
+                                <div><span class="info-label">저자</span>${author}</div>
+                                <div><span class="info-label">출판</span>${pub}</div>
+                            </div>
                         `;
                         resultsList.appendChild(div);
                         count++;
                     }
                 });
 
-                if (count > 0) {
-                    resultCount.innerHTML = `총 ${count}건이 검색되었습니다.`;
-                } else {
-                    resultCount.innerHTML = "❌ 검색 결과가 없습니다.";
-                }
+                resultCount.innerHTML = count > 0 ? `검색 결과 ${count}건` : "❌ 검색 결과가 없습니다.";
             } catch (e) {
-                resultCount.innerHTML = "⚠️ 데이터를 불러오지 못했습니다. 시트 설정을 확인해주세요.";
+                resultCount.innerHTML = "⚠️ 연결 오류가 발생했습니다.";
             }
         }
     </script>
