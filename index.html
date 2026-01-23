@@ -4,16 +4,19 @@ HTML
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>밤송이 작은도서관 도서검색</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LH 밤송이 작은도서관 도서검색</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f7f6; }
         .header { text-align: center; margin-bottom: 30px; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; font-size: 22px; margin-bottom: 10px; }
         .search-container { display: flex; gap: 5px; margin-bottom: 20px; }
         #search-input { flex-grow: 1; padding: 12px; border: 2px solid #3498db; border-radius: 5px; font-size: 16px; }
         button { padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .book-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #3498db; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: left; }
         .book-title { font-size: 17px; color: #2c3e50; font-weight: bold; display: block; margin-bottom: 5px; }
-        .book-details { font-size: 14px; color: #7f8c8d; }
+        .book-details { font-size: 14px; color: #7f8c8d; line-height: 1.5; }
+        #result-count { font-weight: bold; margin-bottom: 10px; color: #34495e; }
     </style>
 </head>
 <body>
@@ -23,7 +26,7 @@ HTML
             <input type="text" id="search-input" placeholder="도서명 또는 저자 입력" onkeypress="if(event.keyCode==13) searchBooks()">
             <button onclick="searchBooks()">검색</button>
         </div>
-        <div id="result-count" style="font-weight:bold; color:#34495e;"></div>
+        <div id="result-count"></div>
     </div>
     <div id="results-list"></div>
 
@@ -34,12 +37,13 @@ HTML
 
             const resultCount = document.getElementById('result-count');
             const resultsList = document.getElementById('results-list');
-            resultCount.innerHTML = "🔍 검색 중...";
+            resultCount.innerHTML = "🔍 검색 중입니다...";
             resultsList.innerHTML = "";
 
-            // 사용자님의 시트 ID와 탭 이름
+            // 사용자님의 시트 ID와 정확한 gid(시트 고유번호) 적용
             const sheetId = '1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw';
-            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=books`;
+            const gid = '2045470469'; 
+            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
 
             try {
                 const response = await fetch(url);
@@ -49,27 +53,31 @@ HTML
 
                 let count = 0;
                 rows.forEach(row => {
-                    // 사용자님 시트 기준: 3번째 칸(C열)이 서명 = row.c[2]
-                    // 4번째 칸(D열)이 저자 = row.c[3], 5번째 칸(E열)이 출판사 = row.c[4]
+                    // C열(서명): row.c[2], D열(저자): row.c[3], E열(출판사): row.c[4]
                     const title = row.c[2] ? String(row.c[2].v) : '';
                     const author = row.c[3] ? String(row.c[3].v) : '';
                     const publisher = row.c[4] ? String(row.c[4].v) : '';
 
-                    if (title.includes(query) || author.includes(query)) {
+                    if (title.toLowerCase().includes(query.toLowerCase()) || author.toLowerCase().includes(query.toLowerCase())) {
                         const div = document.createElement('div');
                         div.className = 'book-item';
                         div.innerHTML = `
                             <span class="book-title">${title}</span>
-                            <div class="book-details">저자: ${author} | 출판사: ${publisher}</div>
+                            <div class="book-details"><b>저자:</b> ${author} | <b>출판사:</b> ${publisher}</div>
                         `;
                         resultsList.appendChild(div);
                         count++;
                     }
                 });
 
-                resultCount.innerHTML = count > 0 ? `총 ${count}건이 검색되었습니다.` : "❌ 검색 결과가 없습니다.";
+                if (count > 0) {
+                    resultCount.innerHTML = `총 ${count}건이 검색되었습니다.`;
+                } else {
+                    resultCount.innerHTML = "❌ 검색 결과가 없습니다.";
+                }
             } catch (e) {
-                resultCount.innerHTML = "⚠️ 데이터를 불러오지 못했습니다. 시트 설정을 확인해주세요.";
+                console.error(e);
+                resultCount.innerHTML = "⚠️ 데이터를 불러오지 못했습니다. 시트 공유 설정을 확인해주세요.";
             }
         }
     </script>
