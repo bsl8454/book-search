@@ -1,98 +1,59 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LH 밤송이 작은도서관 도서검색</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f7f6; color: #333; }
-        .header { text-align: center; margin-bottom: 25px; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-        h1 { color: #2c3e50; font-size: 22px; margin: 0 0 15px 0; }
-        .search-container { display: flex; gap: 8px; }
-        #search-input { flex-grow: 1; padding: 12px; border: 2px solid #3498db; border-radius: 8px; font-size: 16px; outline: none; }
-        button { padding: 0 20px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        
-        #result-count { font-weight: bold; margin-bottom: 12px; color: #555; font-size: 14px; }
-        .book-item { background: white; padding: 18px; border-radius: 10px; margin-bottom: 12px; border-left: 6px solid #3498db; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
-        
-        .book-title { font-size: 17px; color: #2c3e50; font-weight: bold; display: block; margin-bottom: 10px; line-height: 1.4; padding-right: 60px; }
-        
-        /* 정보를 풍성하게 보여주는 그리드 디자인 */
-        .book-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-top: 1px solid #eee; padding-top: 10px; }
-        .info-box { font-size: 13px; color: #666; }
-        .info-label { color: #aaa; margin-right: 5px; font-size: 12px; font-weight: normal; }
-        
-        /* 대출중 빨간 배지 */
-        .status-on { position: absolute; top: 18px; right: 15px; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background-color: #e74c3c; color: white; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>📚 밤송이 작은도서관</h1>
-        <div class="search-container">
-            <input type="text" id="search-input" placeholder="도서명 또는 저자 검색..." onkeypress="if(event.keyCode==13) searchBooks()">
-            <button onclick="searchBooks()">검색</button>
-        </div>
-    </div>
+async function searchBooks() {
+    const query = document.getElementById('searchQuery').value.trim();
+    const resultsContainer = document.getElementById('results');
     
-    <div id="result-count"></div>
-    <div id="results-list"></div>
+    if (!query) {
+        alert('검색어를 입력해주세요!');
+        return;
+    }
 
-    <script>
-        async function searchBooks() {
-            const query = document.getElementById('search-input').value.trim();
-            if (!query) return;
+    resultsContainer.innerHTML = '<p>검색 중입니다...</p>';
 
-            const resultCount = document.getElementById('result-count');
-            const resultsList = document.getElementById('results-list');
-            resultCount.innerHTML = "🔍 검색 중...";
-            resultsList.innerHTML = "";
+    // 구글 시트 직통 주소 (관장님 시트 전용)
+    const url = 'https://docs.google.com/spreadsheets/d/1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw/gviz/tq?tqx=out:json&gid=2045470469';
 
-            const sheetId = '1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw';
-            const gid = '2045470469'; 
-          const url = 'https://docs.google.com/spreadsheets/d/1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw/gviz/tq?tqx=out:json&gid=2045470469&range=A2:G5000';
-           
-            try {
-                const response = await fetch(url);
-                const text = await response.text();
-                const json = JSON.parse(text.substr(47).slice(0, -2));
-                const rows = json.table.rows;
+    try {
+        const response = await fetch(url);
+        const text = await response.text();
+        // 구글 응답 데이터에서 JSON 부분만 추출
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const rows = json.table.rows;
 
-                let count = 0;
-                rows.forEach(row => {
-                    // 구글 시트 열 매핑 (B=1, C=2, D=3, E=4, F=5, G=6)
-                    const regNum = row.c[1] ? String(row.c[1].v) : '-'; // 등록번호
-                    const title = row.c[2] ? String(row.c[2].v) : '제목없음'; // 서명
-                    const author = row.c[3] ? String(row.c[3].v) : '-'; // 저자
-                    const pub = row.c[4] ? String(row.c[4].v) : '-';    // 출판사
-                    const year = row.c[5] ? String(row.c[5].v) : '-';   // 발행년도
-                    const status = row.c[6] ? String(row.c[6].v).trim() : ''; // 대출상태
+        const results = rows
+            .map(row => ({
+                title: row.c[1] ? row.c[1].v : '', // B열: 제목
+                author: row.c[2] ? row.c[2].v : '', // C열: 저자
+                publisher: row.c[3] ? row.c[3].v : '', // D열: 출판사
+                image: row.c[6] ? row.c[6].v : '' // G열: 이미지 URL
+            }))
+            .filter(book => book.title.includes(query) || book.author.includes(query));
 
-                    if (title.toLowerCase().includes(query.toLowerCase()) || author.toLowerCase().includes(query.toLowerCase())) {
-                        const div = document.createElement('div');
-                        div.className = 'book-item';
-                        const statusTag = (status === '대출중') ? `<span class="status-on">대출중</span>` : '';
-                        
-                        div.innerHTML = `
-                            ${statusTag}
-                            <span class="book-title">${title}</span>
-                            <div class="book-grid">
-                                <div class="info-box"><span class="info-label">등록번호</span>${regNum}</div>
-                                <div class="info-box"><span class="info-label">저자</span>${author}</div>
-                                <div class="info-box"><span class="info-label">출판사</span>${pub}</div>
-                                <div class="info-box"><span class="info-label">발행년도</span>${year}</div>
-                            </div>
-                        `;
-                        resultsList.appendChild(div);
-                        count++;
-                    }
-                });
+        displayResults(results);
+    } catch (error) {
+        console.error('Error:', error);
+        resultsContainer.innerHTML = '<p>데이터를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.</p>';
+    }
+}
 
-                resultCount.innerHTML = count > 0 ? `검색 결과 ${count}건` : "❌ 검색 결과가 없습니다.";
-            } catch (e) {
-                resultCount.innerHTML = "⚠️ 데이터를 불러오지 못했습니다.";
-            }
-        }
-    </script>
-</body>
-</html>
+function displayResults(results) {
+    const resultsContainer = document.getElementById('results');
+    resultsContainer.innerHTML = '';
+
+    if (results.length === 0) {
+        resultsContainer.innerHTML = '<p>검색 결과가 없습니다.</p>';
+        return;
+    }
+
+    results.forEach(book => {
+        const div = document.createElement('div');
+        div.className = 'book-item';
+        div.innerHTML = `
+            <img src="${book.image}" alt="${book.title}" onerror="this.src='https://via.placeholder.com/100x150?text=No+Image'">
+            <div class="book-info">
+                <div class="book-title">${book.title}</div>
+                <div class="book-author">${book.author} | ${book.publisher}</div>
+            </div>
+        `;
+        resultsContainer.appendChild(div);
+    });
+}
