@@ -11,15 +11,20 @@
         .search-box { display: flex; gap: 10px; margin: 20px 0; }
         input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
         button { padding: 12px 20px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .book-item { padding: 15px; border-bottom: 1px solid #eee; background: #fff; }
-        .book-title { font-weight: bold; color: #2c3e50; }
-        #status { text-align: center; font-size: 0.9em; color: #3498db; font-weight: bold; padding: 10px; border: 1px dashed #3498db; border-radius: 8px; margin-bottom: 15px; }
+        .book-item { padding: 15px; border-bottom: 1px solid #eee; background: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .book-info { flex: 1; }
+        .book-title { font-weight: bold; color: #2c3e50; margin-bottom: 4px; }
+        .book-meta { font-size: 0.85em; color: #7f8c8d; }
+        .status-badge { padding: 4px 8px; border-radius: 5px; font-size: 0.8em; font-weight: bold; min-width: 60px; text-align: center; border: 1px solid; }
+        .status-available { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; } /* 대출가능 (초록) */
+        .status-borrowed { background: #ffebee; color: #c62828; border-color: #ffcdd2; }  /* 대출중 (빨간) */
+        #status-summary { text-align: center; font-size: 0.9em; color: #3498db; font-weight: bold; padding: 10px; border: 1px dashed #3498db; border-radius: 8px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>📚 밤송이도서관 검색기</h2>
-        <div id="status">데이터를 불러오는 중...</div>
+        <div id="status-summary">데이터를 불러오는 중...</div>
         <div class="search-box">
             <input type="text" id="searchQuery" placeholder="책 제목이나 저자를 입력하세요" onkeypress="if(event.keyCode==13) searchBooks()">
             <button onclick="searchBooks()">검색</button>
@@ -31,8 +36,7 @@
         let allBooks = [];
 
         async function loadData() {
-            const statusBox = document.getElementById('status');
-            // 구글 서버에 '파일 통째로 내놔'라고 명령하는 절대 주소입니다.
+            const summaryBox = document.getElementById('status-summary');
             const url = 'https://docs.google.com/spreadsheets/d/1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw/export?format=csv&gid=2045470469';
 
             try {
@@ -40,19 +44,19 @@
                 const csvData = await response.text();
                 const rows = csvData.split(/\r?\n/);
                 
-                // 첫 줄(제목) 빼고 진짜 데이터만 골라냅니다.
                 allBooks = rows.slice(1).map(row => {
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     return {
                         title: cols[2] ? cols[2].replace(/"/g, "").trim() : "",
                         author: cols[3] ? cols[3].replace(/"/g, "").trim() : "",
-                        publisher: cols[4] ? cols[4].replace(/"/g, "").trim() : ""
+                        publisher: cols[4] ? cols[4].replace(/"/g, "").trim() : "",
+                        state: cols[5] ? cols[5].replace(/"/g, "").trim() : ""
                     };
                 }).filter(book => book.title && book.title.length > 0);
 
-                statusBox.innerText = `✅ 총 ${allBooks.length}권의 데이터를 모두 찾았습니다!`;
+                summaryBox.innerText = `✅ 총 ${allBooks.length}권의 데이터를 모두 찾았습니다!`;
             } catch (e) {
-                statusBox.innerText = '❌ 연결 실패 (구글 시트 공유 설정을 확인해주세요)';
+                summaryBox.innerText = '❌ 데이터 로드 실패';
             }
         }
 
@@ -73,7 +77,23 @@
                 filtered.forEach(book => {
                     const div = document.createElement('div');
                     div.className = 'book-item';
-                    div.innerHTML = `<div class="book-title">${book.title}</div><div style="font-size:0.9em; color:gray;">${book.author} | ${book.publisher}</div>`;
+                    
+                    // 핵심 로직: '대출중'이면 빨간색, 그 외 모든 경우(공란 포함)는 초록색 '대출가능'
+                    let statusLabel = '대출가능';
+                    let statusClass = 'status-available';
+                    
+                    if (book.state.includes('대출중')) {
+                        statusLabel = '대출중';
+                        statusClass = 'status-borrowed';
+                    }
+                    
+                    div.innerHTML = `
+                        <div class="book-info">
+                            <div class="book-title">${book.title}</div>
+                            <div class="book-meta">${book.author} | ${book.publisher}</div>
+                        </div>
+                        <div class="status-badge ${statusClass}">${statusLabel}</div>
+                    `;
                     resultsContainer.appendChild(div);
                 });
             }
