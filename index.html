@@ -40,7 +40,7 @@
                 const csvData = await response.text();
                 const rows = csvData.split('\n');
                 
-                allBooks = rows.map(row => {
+             allBooks = rows.map(row => {
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     return {
                         title: cols[2] ? cols[2].replace(/"/g, "").trim() : "",
