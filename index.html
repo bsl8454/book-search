@@ -33,51 +33,59 @@
         async function loadData() {
             const statusBox = document.getElementById('status');
             // 관장님의 최신 시트 ID를 기반으로 '전체 데이터'를 강제 호출하는 주소입니다.
-            const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyMe8IX4me-BmLGajV_GV4LYxNFUvhRuDUF5LpuybhlVuRF4EWAgVieFHnWYAjpNWeD9OyfKW6k3oW/gviz/tq?tqx=out:csv&gid=2045470469';
+    <script>
+    let allBooks = [];
 
-            try {
-                const response = await fetch(url);
-                const csvData = await response.text();
-                const rows = csvData.split('\n');
-                
-                allBooks = rows.map(row => {
-                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    return {
-                        title: cols[2] ? cols[2].replace(/"/g, "").trim() : "",
-                        author: cols[3] ? cols[3].replace(/"/g, "").trim() : "",
-                        publisher: cols[4] ? cols[4].replace(/"/g, "").trim() : ""
-                    };
-                }).filter(book => book.title && book.title.length > 0 && book.title !== "도서명");
+    async function loadData() {
+        const statusBox = document.getElementById('status');
+        // 이 주소는 구글이 거부할 수 없는 '강제 다운로드'용 주소입니다.
+        const url = 'https://docs.google.com/spreadsheets/d/1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw/export?format=csv&gid=2045470469';
 
-                statusBox.innerText = `✅ 총 ${allBooks.length}권의 데이터를 모두 찾았습니다!`;
-            } catch (e) {
-                statusBox.innerText = '❌ 연결 실패 (잠시 후 새로고침 해주세요)';
-            }
-        }
-
-        function searchBooks() {
-            const query = document.getElementById('searchQuery').value.trim().toLowerCase();
-            const resultsContainer = document.getElementById('results');
-            if (!query) return;
+        try {
+            const response = await fetch(url);
+            const csvData = await response.text();
             
-            const filtered = allBooks.filter(book => 
-                book.title.toLowerCase().includes(query) || 
-                book.author.toLowerCase().includes(query)
-            );
+            // 데이터를 줄 바꿈 단위로 쪼갭니다.
+            const rows = csvData.split(/\r?\n/);
+            
+            allBooks = rows.map(row => {
+                // 쉼표를 기준으로 데이터를 나누는 정밀 공식
+                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                return {
+                    title: cols[2] ? cols[2].replace(/"/g, "").trim() : "",
+                    author: cols[3] ? cols[3].replace(/"/g, "").trim() : "",
+                    publisher: cols[4] ? cols[4].replace(/"/g, "").trim() : ""
+                };
+            }).filter(book => book.title && book.title !== "도서명" && book.title !== "title");
 
-            resultsContainer.innerHTML = '';
-            if (filtered.length === 0) {
-                resultsContainer.innerHTML = '<p style="text-align:center; padding:20px;">검색 결과가 없습니다. 🤔</p>';
-            } else {
-                filtered.forEach(book => {
-                    const div = document.createElement('div');
-                    div.className = 'book-item';
-                    div.innerHTML = `<div class="book-title">${book.title}</div><div style="font-size:0.9em; color:gray;">${book.author} | ${book.publisher}</div>`;
-                    resultsContainer.appendChild(div);
-                });
-            }
+            statusBox.innerText = `✅ 총 ${allBooks.length}권의 데이터를 모두 찾았습니다!`;
+        } catch (e) {
+            console.error(e);
+            statusBox.innerText = '❌ 데이터 로드 실패 (공유 설정을 확인해주세요)';
         }
-        loadData();
-    </script>
-</body>
-</html>
+    }
+
+    function searchBooks() {
+        const query = document.getElementById('searchQuery').value.trim().toLowerCase();
+        const resultsContainer = document.getElementById('results');
+        if (!query) return;
+        
+        const filtered = allBooks.filter(book => 
+            book.title.toLowerCase().includes(query) || 
+            book.author.toLowerCase().includes(query)
+        );
+
+        resultsContainer.innerHTML = '';
+        if (filtered.length === 0) {
+            resultsContainer.innerHTML = '<p style="text-align:center; padding:20px;">검색 결과가 없습니다. 🤔</p>';
+        } else {
+            filtered.forEach(book => {
+                const div = document.createElement('div');
+                div.className = 'book-item';
+                div.innerHTML = `<div class="book-title">${book.title}</div><div style="font-size:0.9em; color:gray;">${book.author} | ${book.publisher}</div>`;
+                resultsContainer.appendChild(div);
+            });
+        }
+    }
+    loadData();
+</script>
