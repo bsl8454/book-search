@@ -32,22 +32,23 @@
 
         async function loadData() {
             const statusBox = document.getElementById('status');
-            // 바로 이 아랫줄 주소가 3,000권을 불러오는 핵심 열쇠입니다!
-        const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyMe8IX4me-BmLGajV_GV4LYxNFUvhRuDUF5LpuybhlVuRF4EWAgVieFHnWYAjpNWeD9OyfKW6k3oW/gviz/tq?tqx=out:csv&gid=2045470469';
+            // 관장님의 최신 구글 시트 주소로 업데이트 완료!
+            const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyMe8IX4me-BmLGajV_GV4LYxNFUvhRuDUF5LpuybhlVuRF4EWAgVieFHnWYAjpNWeD9OyfKW6k3oW/gviz/tq?tqx=out:csv&gid=2045470469';
 
             try {
                 const response = await fetch(url);
                 const csvData = await response.text();
                 const rows = csvData.split('\n');
                 
-             allBooks = rows.map(row => {
+                allBooks = rows.map(row => {
+                    // 쉼표로 데이터를 나누는 정교한 공식
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     return {
                         title: cols[2] ? cols[2].replace(/"/g, "").trim() : "",
                         author: cols[3] ? cols[3].replace(/"/g, "").trim() : "",
                         publisher: cols[4] ? cols[4].replace(/"/g, "").trim() : ""
                     };
-                }).filter(book => book.title && book.title.length > 0);
+                }).filter(book => book.title && book.title.length > 0 && book.title !== "도서명");
 
                 statusBox.innerText = `✅ 총 ${allBooks.length}권의 데이터를 모두 찾았습니다!`;
             } catch (e) {
