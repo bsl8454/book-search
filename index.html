@@ -3,25 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LH 밤송이 작은도서관 검색기</title>
+    <title>LH 밤송이 작은도서관 검색</title>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background-color: #f5f7f9; color: #333; }
+        body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background-color: #f5f7f9; }
         .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; }
-        .search-box { display: flex; gap: 10px; margin: 25px 0; }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 25px; }
         input { flex: 1; padding: 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
         button { padding: 15px 25px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #2980b9; }
-        .book-item { margin-top: 15px; padding: 15px; border-bottom: 2px solid #f0f0f0; background: #fafafa; border-radius: 5px; }
-        .book-title { font-weight: bold; color: #2c3e50; font-size: 1.1em; margin-bottom: 5px; }
-        .book-info { color: #666; font-size: 0.9em; }
-        #status { text-align: center; margin-bottom: 10px; font-size: 0.9em; color: #3498db; }
+        .book-item { margin-top: 15px; padding: 15px; border: 1px solid #f0f0f0; border-radius: 8px; background: #fff; border-left: 5px solid #3498db; }
+        .book-title { font-weight: bold; color: #2c3e50; }
+        .book-info { color: #7f8c8d; font-size: 0.9em; margin-top: 5px; }
+        #status { text-align: center; margin-bottom: 10px; font-size: 0.85em; color: #3498db; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>📚 소장도서 검색기</h2>
-        <div id="status">데이터 연결 준비 완료</div>
+        <div id="status">데이터 연결 시도 중...</div>
         <div class="search-box">
             <input type="text" id="searchQuery" placeholder="도서명 또는 저자를 입력하세요" onkeypress="if(event.keyCode==13) searchBooks()">
             <button onclick="searchBooks()">검색</button>
@@ -30,61 +29,59 @@
     </div>
 
     <script>
-        async function searchBooks() {
-            const query = document.getElementById('searchQuery').value.trim().replace(/\s/g, "").toLowerCase();
-            const resultsContainer = document.getElementById('results');
+        let allBooks = [];
+
+        // 페이지가 열리면 데이터를 미리 다 가져옵니다.
+        async function loadData() {
             const statusBox = document.getElementById('status');
-            
-            if (!query) { alert('검색어를 입력해 주세요!'); return; }
-            
-            resultsContainer.innerHTML = '<p style="text-align:center;">🔍 검색 중입니다...</p>';
-            
-            // 관장님 시트의 고유 ID와 gid (정확히 확인된 값)
-            const sheetId = '1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw';
-            const gid = '2045470469';
-            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
+            // 구글 시트 데이터를 CSV(텍스트) 형태로 강제 호출합니다.
+            const url = 'https://docs.google.com/spreadsheets/d/1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw/export?format=csv&gid=2045470469';
 
             try {
                 const response = await fetch(url);
-                const text = await response.text();
-                // JSON 데이터 추출
-                const json = JSON.parse(text.substring(47).slice(0, -2));
-                const rows = json.table.rows;
-
-                // [강력한 검색 로직] 모든 셀을 검사하고 공백을 무시합니다.
-                const results = rows.filter(row => {
-                    if (!row.c) return false;
-                    return row.c.some(cell => {
-                        if (!cell || !cell.v) return false;
-                        const cellValue = String(cell.v).replace(/\s/g, "").toLowerCase();
-                        return cellValue.includes(query);
-                    });
-                }).map(row => ({
-                    title: row.c[2] ? String(row.c[2].v) : "정보 없음",
-                    author: row.c[3] ? String(row.c[3].v) : "정보 없음",
-                    publisher: row.c[4] ? String(row.c[4].v) : ""
+                const data = await response.text();
+                const rows = data.split('\n').map(row => row.split(','));
+                
+                // 첫 줄(제목) 제외하고 저장
+                allBooks = rows.slice(1).map(row => ({
+                    title: row[2] ? row[2].replace(/"/g, "") : "",
+                    author: row[3] ? row[3].replace(/"/g, "") : "",
+                    publisher: row[4] ? row[4].replace(/"/g, "") : ""
                 }));
 
-                resultsContainer.innerHTML = '';
-                if (results.length === 0) {
-                    resultsContainer.innerHTML = '<p style="text-align:center;">검색 결과가 없습니다. 🧐<br>도서관에 등록된 정확한 명칭인지 확인해주세요.</p>';
-                } else {
-                    results.forEach(book => {
-                        const div = document.createElement('div');
-                        div.className = 'book-item';
-                        div.innerHTML = `
-                            <div class="book-title">${book.title}</div>
-                            <div class="book-info">저자: ${book.author} | 출판사: ${book.publisher}</div>
-                        `;
-                        resultsContainer.appendChild(div);
-                    });
-                }
-                statusBox.innerText = `총 ${rows.length}권의 도서 중 검색 완료`;
+                statusBox.innerText = `✅ 총 ${allBooks.length}권의 도서 연결 완료`;
             } catch (e) {
-                console.error(e);
-                resultsContainer.innerHTML = '<p style="text-align:center; color:red;">❌ 데이터를 가져오지 못했습니다.<br>구글 시트의 [공유] 설정이 "링크가 있는 모든 사용자"인지 확인해주세요.</p>';
+                statusBox.innerText = '❌ 데이터 연결 실패 (시트 설정을 확인하세요)';
             }
         }
+
+        function searchBooks() {
+            const query = document.getElementById('searchQuery').value.trim().toLowerCase();
+            const resultsContainer = document.getElementById('results');
+            
+            if (!query) { alert('검색어를 입력하세요!'); return; }
+            if (allBooks.length === 0) { alert('데이터를 불러오는 중입니다. 잠시만 기다려주세요.'); return; }
+
+            const filtered = allBooks.filter(book => 
+                book.title.toLowerCase().includes(query) || 
+                book.author.toLowerCase().includes(query)
+            );
+
+            resultsContainer.innerHTML = '';
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = '<p style="text-align:center;">검색 결과가 없습니다. 🤔</p>';
+            } else {
+                filtered.forEach(book => {
+                    const div = document.createElement('div');
+                    div.className = 'book-item';
+                    div.innerHTML = `<div class="book-title">${book.title}</div><div class="book-info">${book.author} | ${book.publisher}</div>`;
+                    resultsContainer.appendChild(div);
+                });
+            }
+        }
+
+        // 실행
+        loadData();
     </script>
 </body>
 </html>
