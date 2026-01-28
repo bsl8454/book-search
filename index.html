@@ -7,31 +7,31 @@ async function searchBooks() {
         return;
     }
 
-    resultsContainer.innerHTML = '<p>검색 중입니다...</p>';
+    resultsContainer.innerHTML = '<p>🔍 검색 중입니다...</p>';
 
-    // 구글 시트 직통 주소 (관장님 시트 전용)
+    // 관장님 시트 직통 주소
     const url = 'https://docs.google.com/spreadsheets/d/1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw/gviz/tq?tqx=out:json&gid=2045470469';
 
     try {
         const response = await fetch(url);
         const text = await response.text();
-        // 구글 응답 데이터에서 JSON 부분만 추출
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
 
+        // 시트 열 순서에 맞춰 데이터 추출 (C열: 제목, D열: 저자...)
         const results = rows
             .map(row => ({
-                title: row.c[1] ? row.c[1].v : '', // B열: 제목
-                author: row.c[2] ? row.c[2].v : '', // C열: 저자
-                publisher: row.c[3] ? row.c[3].v : '', // D열: 출판사
-                image: row.c[6] ? row.c[6].v : '' // G열: 이미지 URL
+                title: row.c[2] ? String(row.c[2].v) : '',     
+                author: row.c[3] ? String(row.c[3].v) : '',    
+                publisher: row.c[4] ? String(row.c[4].v) : '', 
+                image: row.c[7] ? String(row.c[7].v) : ''      
             }))
             .filter(book => book.title.includes(query) || book.author.includes(query));
 
         displayResults(results);
     } catch (error) {
         console.error('Error:', error);
-        resultsContainer.innerHTML = '<p>데이터를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.</p>';
+        resultsContainer.innerHTML = '<p>데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>';
     }
 }
 
@@ -48,11 +48,11 @@ function displayResults(results) {
         const div = document.createElement('div');
         div.className = 'book-item';
         div.innerHTML = `
-            <img src="${book.image}" alt="${book.title}" onerror="this.src='https://via.placeholder.com/100x150?text=No+Image'">
             <div class="book-info">
-                <div class="book-title">${book.title}</div>
-                <div class="book-author">${book.author} | ${book.publisher}</div>
+                <div class="book-title" style="font-weight:bold; color:#2c3e50;">${book.title}</div>
+                <div class="book-author" style="color:#7f8c8d; font-size:0.9em;">${book.author} | ${book.publisher}</div>
             </div>
+            <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
         `;
         resultsContainer.appendChild(div);
     });
