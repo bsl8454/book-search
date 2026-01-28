@@ -32,7 +32,7 @@
 
         async function loadData() {
             const statusBox = document.getElementById('status');
-            // 관장님의 최신 구글 시트 주소로 업데이트 완료!
+            // 관장님의 최신 시트 ID를 기반으로 '전체 데이터'를 강제 호출하는 주소입니다.
             const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyMe8IX4me-BmLGajV_GV4LYxNFUvhRuDUF5LpuybhlVuRF4EWAgVieFHnWYAjpNWeD9OyfKW6k3oW/gviz/tq?tqx=out:csv&gid=2045470469';
 
             try {
@@ -41,7 +41,6 @@
                 const rows = csvData.split('\n');
                 
                 allBooks = rows.map(row => {
-                    // 쉼표로 데이터를 나누는 정교한 공식
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     return {
                         title: cols[2] ? cols[2].replace(/"/g, "").trim() : "",
