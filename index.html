@@ -51,8 +51,7 @@
             const sheetId = '1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw';
             const gid = '2045470469'; 
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${gid}&range=A2:G5000`;
-            `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
-
+           
             try {
                 const response = await fetch(url);
                 const text = await response.text();
