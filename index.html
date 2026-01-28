@@ -42,29 +42,32 @@
             try {
                 const response = await fetch(url);
                 const csvData = await response.text();
-                const rows = csvData.split(/\r?\n/);
+                const rows = csvData.split(/\r?\n/).filter(row => row.trim() !== "");
                 
-                // 첫 줄에서 제목들을 찾습니다. (관장님 시트의 '대출상태' 반영)
+                // 첫 줄(헤더) 파싱 시 모든 공백 제거
                 const headers = rows[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, "").trim());
-                const titleIdx = headers.indexOf("서명"); // '도서명'에서 '서명'으로 수정
+                
+                // 관장님 시트의 정확한 제목명으로 인덱스 찾기
+                const titleIdx = headers.indexOf("서명");
                 const authorIdx = headers.indexOf("저자");
                 const pubIdx = headers.indexOf("출판사");
-                const statusIdx = headers.indexOf("대출상태"); // '대출여부'에서 '대출상태'로 수정
+                const statusIdx = headers.indexOf("대출상태");
 
                 allBooks = rows.slice(1).map(row => {
-                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    const stateText = (cols[statusIdx] || "").replace(/"/g, "").trim();
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
+                    const stateText = cols[statusIdx] || "";
                     
                     return {
-                        title: (cols[titleIdx] || "").replace(/"/g, "").trim(),
-                        author: (cols[authorIdx] || "").replace(/"/g, "").trim(),
-                        publisher: (cols[pubIdx] || "").replace(/"/g, "").trim(),
+                        title: cols[titleIdx] || "제목 없음",
+                        author: cols[authorIdx] || "저자 미상",
+                        publisher: cols[pubIdx] || "출판사 미상",
                         isBorrowed: stateText.includes("대출중")
                     };
-                }).filter(book => book.title);
+                }).filter(book => book.title !== "제목 없음");
 
                 summaryBox.innerText = `✅ 총 ${allBooks.length}권의 데이터를 불러왔습니다!`;
             } catch (e) {
+                console.error(e);
                 summaryBox.innerText = '❌ 데이터를 불러오지 못했습니다.';
             }
         }
