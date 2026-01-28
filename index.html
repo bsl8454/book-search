@@ -3,26 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LH 밤송이 작은도서관 검색</title>
+    <title>LH 밤송이 작은도서관</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background-color: #f5f7f9; }
-        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
-        .search-box { display: flex; gap: 10px; margin-bottom: 25px; }
-        input { flex: 1; padding: 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
-        button { padding: 15px 25px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .book-item { margin-top: 15px; padding: 15px; border: 1px solid #f0f0f0; border-radius: 8px; background: #fff; border-left: 5px solid #3498db; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; }
+        .search-box { display: flex; gap: 10px; margin: 20px 0; }
+        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        button { padding: 12px 20px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .book-item { padding: 15px; border-bottom: 1px solid #eee; background: #fff; }
         .book-title { font-weight: bold; color: #2c3e50; }
-        .book-info { color: #7f8c8d; font-size: 0.9em; margin-top: 5px; }
-        #status { text-align: center; margin-bottom: 10px; font-size: 0.85em; color: #3498db; font-weight: bold; }
+        #status { text-align: center; font-size: 0.9em; color: #3498db; font-weight: bold; padding: 10px; border: 1px dashed #3498db; border-radius: 8px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>📚 소장도서 검색기</h2>
-        <div id="status">데이터 연결 시도 중...</div>
+        <h2>📚 밤송이도서관 검색기</h2>
+        <div id="status">연결 확인 중...</div>
         <div class="search-box">
-            <input type="text" id="searchQuery" placeholder="도서명 또는 저자를 입력하세요" onkeypress="if(event.keyCode==13) searchBooks()">
+            <input type="text" id="searchQuery" placeholder="책 제목이나 저자를 입력하세요" onkeypress="if(event.keyCode==13) searchBooks()">
             <button onclick="searchBooks()">검색</button>
         </div>
         <div id="results"></div>
@@ -31,37 +30,36 @@
     <script>
         let allBooks = [];
 
-        // 페이지가 열리면 데이터를 미리 다 가져옵니다.
         async function loadData() {
             const statusBox = document.getElementById('status');
-            // 구글 시트 데이터를 CSV(텍스트) 형태로 강제 호출합니다.
-            const url = 'https://docs.google.com/spreadsheets/d/1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw/export?format=csv&gid=2045470469';
+            // [강제 호출 주소] 시트의 설정을 무시하고 데이터를 강제로 긁어오는 특수 주소입니다.
+            const url = 'https://docs.google.com/spreadsheets/d/1V9GGjLnsHGWjJu-GT__MlgX3ZXSeHvwIsEYDIbEjpxw/gviz/tq?tqx=out:csv&gid=2045470469&range=A2:G5000';
 
             try {
                 const response = await fetch(url);
-                const data = await response.text();
-                const rows = data.split('\n').map(row => row.split(','));
+                const csvData = await response.text();
+                const rows = csvData.split('\n');
                 
-                // 첫 줄(제목) 제외하고 저장
-                allBooks = rows.slice(1).map(row => ({
-                    title: row[2] ? row[2].replace(/"/g, "") : "",
-                    author: row[3] ? row[3].replace(/"/g, "") : "",
-                    publisher: row[4] ? row[4].replace(/"/g, "") : ""
-                }));
+                allBooks = rows.map(row => {
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    return {
+                        title: cols[2] ? cols[2].replace(/"/g, "").trim() : "",
+                        author: cols[3] ? cols[3].replace(/"/g, "").trim() : "",
+                        publisher: cols[4] ? cols[4].replace(/"/g, "").trim() : ""
+                    };
+                }).filter(book => book.title.length > 2); // 제목이 너무 짧은 행 제외
 
-                statusBox.innerText = `✅ 총 ${allBooks.length}권의 도서 연결 완료`;
+                statusBox.innerText = `✅ 총 ${allBooks.length}권의 데이터를 모두 찾았습니다!`;
             } catch (e) {
-                statusBox.innerText = '❌ 데이터 연결 실패 (시트 설정을 확인하세요)';
+                statusBox.innerText = '❌ 연결 실패 (새로고침(F5)을 해주세요)';
             }
         }
 
         function searchBooks() {
             const query = document.getElementById('searchQuery').value.trim().toLowerCase();
             const resultsContainer = document.getElementById('results');
+            if (!query) return;
             
-            if (!query) { alert('검색어를 입력하세요!'); return; }
-            if (allBooks.length === 0) { alert('데이터를 불러오는 중입니다. 잠시만 기다려주세요.'); return; }
-
             const filtered = allBooks.filter(book => 
                 book.title.toLowerCase().includes(query) || 
                 book.author.toLowerCase().includes(query)
@@ -69,18 +67,16 @@
 
             resultsContainer.innerHTML = '';
             if (filtered.length === 0) {
-                resultsContainer.innerHTML = '<p style="text-align:center;">검색 결과가 없습니다. 🤔</p>';
+                resultsContainer.innerHTML = '<p style="text-align:center; padding:20px;">검색 결과가 없습니다. 🤔</p>';
             } else {
                 filtered.forEach(book => {
                     const div = document.createElement('div');
                     div.className = 'book-item';
-                    div.innerHTML = `<div class="book-title">${book.title}</div><div class="book-info">${book.author} | ${book.publisher}</div>`;
+                    div.innerHTML = `<div class="book-title">${book.title}</div><div style="font-size:0.9em; color:gray;">${book.author} | ${book.publisher}</div>`;
                     resultsContainer.appendChild(div);
                 });
             }
         }
-
-        // 실행
         loadData();
     </script>
 </body>
